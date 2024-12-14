@@ -1,0 +1,31 @@
+backup-cronjob.yaml
+
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: authentik-db-backup
+spec:
+  schedule: "0 2 * * *"  # Adjust the schedule as needed
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: appropriate/postgres
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql
+                  key: postgresql-password
+            command: ["/bin/sh", "-c", "pg_dump -h localhost -U authentik authentik > /backups/authentik-backup.sql"]
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backups
+          restartPolicy: OnFailure
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-pvc
